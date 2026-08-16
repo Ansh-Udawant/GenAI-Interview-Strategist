@@ -32,8 +32,8 @@ app.use("/api/interview", interviewRouter);
 /**
  * Health Check Endpoint
  */
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+app.get(["/health", "/healthcheck", "/api/health", "/api/healthcheck"], (req, res) => {
+  res.status(200).json({ status: "OK", message: "Server is running", timestamp: new Date().toISOString() });
 });
 
 // Global Error Handler
