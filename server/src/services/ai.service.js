@@ -240,9 +240,10 @@ ${jobDescription}
 HTML & CSS Requirements:
 - Return ONLY a JSON object matching the schema with the 'html' field containing valid HTML5 markup (\`<!DOCTYPE html><html>...\`).
 - Design, Border & Spacing Guidelines:
-  - MUST fit perfectly onto a SINGLE A4 page. Adjust font-sizes, line-heights, and vertical margins to ensure all content fits without creating a second page or large white gaps.
+  - MUST fit perfectly onto a SINGLE A4 page and visually occupy approximately 75% to 90% of the page height.
+  - DO NOT compress all content into the top half or leave a large blank space at the bottom. Use comfortable font sizes (10.5px - 11px), line-heights (1.35 - 1.4), and balanced vertical margins (14px - 18px for section headings) so the layout fills the page naturally without spilling onto a second page.
   - DO NOT use outer card containers, border outlines, box shadows, grey page margins, or nested background cards. The entire document body must be flat, pure white (#ffffff) with black/dark-gray text.
-  - Set the CSS print margins: use \`@page { size: A4; margin: 0; }\` and \`body { margin: 0; padding: 0.5in; font-family: Arial, Helvetica, sans-serif; box-sizing: border-box; background: #ffffff; }\`.
+  - Set the CSS print margins: use \`@page { size: A4; margin: 0; }\` and \`body { margin: 0; padding: 0.5in; font-family: Arial, Helvetica, sans-serif; box-sizing: border-box; background: #ffffff; color: #111827; }\`.
   - MUST be a single-column layout (NO multi-columns, NO sidebars, NO tables).
   - HYPERLINKS & URLs FORMATTING REQUIREMENT:
     * All contact links (Email, LinkedIn, GitHub profile) MUST be wrapped in <a> tags and styled in vibrant blue color (#2563eb).
@@ -251,12 +252,12 @@ HTML & CSS Requirements:
       Example format:
       <div><strong>GitHub:</strong> <a href="https://github.com/User/Repo" style="color: #2563eb; text-decoration: underline;">https://github.com/User/Repo</a></div>
       <div><strong>Live:</strong> <a href="https://app.vercel.app" style="color: #2563eb; text-decoration: underline;">https://app.vercel.app</a></div>
-  - Typography & Sizing:
-    * Name: 20px - 22px (Bold, centered or left-aligned)
-    * Job Title: 14px (Centered or left-aligned, muted gray)
-    * Contact info: 10px - 11px (Centered or left-aligned, inline separated by pipes '|' or bullet dots, with all links in blue #2563eb)
-    * Section headings: 12px - 13px (Bold, Uppercase, with a thin bottom border: border-bottom: 1px solid #ddd; padding-bottom: 3px; margin-top: 15px; margin-bottom: 8px)
-    * Body text & bullet points: 10px - 11px (line-height: 1.3, list margins: 3px)
+  - Typography & Vertical Spacing:
+    * Name: 21px - 22px (Bold, centered or left-aligned, margin-bottom: 4px)
+    * Job Title: 13px - 14px (Centered or left-aligned, muted gray #4b5563, margin-bottom: 6px)
+    * Contact info: 10px - 11px (Centered or left-aligned, inline separated by pipes '|' or bullet dots, with all links in blue #2563eb, margin-bottom: 14px)
+    * Section headings: 12px - 13px (Bold, Uppercase, with a thin bottom border: border-bottom: 1px solid #d1d5db; padding-bottom: 4px; margin-top: 16px; margin-bottom: 10px)
+    * Body text & bullet points: 10.5px - 11px (line-height: 1.35 - 1.4, list item margin-bottom: 4px)
   - Apply \`page-break-inside: avoid; break-inside: avoid;\` to each individual section block (e.g. .experience-item, .project-item) to prevent weird section splitting.
   - Use bullet points for experience and project tasks.
 `;
@@ -281,12 +282,22 @@ HTML & CSS Requirements:
     // Ensure GitHub and Live links on the same line get split onto separate lines with <br/>
     html = html.replace(/(<strong>(?:GitHub|Live|Live Demo):<\/strong>\s*<a[^>]*>[^<]+<\/a>)\s*(?:\||&nbsp;|\s)+\s*(<strong>(?:Live|Live Demo|GitHub):<\/strong>\s*<a[^>]*>[^<]+<\/a>)/gi, "$1<br/>$2");
 
-    // Inject blue link styling guarantee
-    const blueLinkStyle = `<style>a, a:visited, a:hover, a:active { color: #2563eb !important; text-decoration: underline !important; font-weight: 500; word-break: break-all; }</style>`;
+    // Inject blue link & layout styling guarantee
+    const layoutStyle = `<style>
+      @page { size: A4; margin: 0; }
+      body { margin: 0 !important; padding: 0.5in !important; font-family: Arial, Helvetica, sans-serif !important; background: #ffffff !important; color: #111827 !important; line-height: 1.38 !important; }
+      a, a:visited, a:hover, a:active { color: #2563eb !important; text-decoration: underline !important; font-weight: 500; word-break: break-all; }
+      h1 { font-size: 21px !important; margin-top: 0 !important; margin-bottom: 4px !important; }
+      h2 { font-size: 13px !important; margin-top: 16px !important; margin-bottom: 8px !important; padding-bottom: 4px !important; border-bottom: 1px solid #d1d5db !important; text-transform: uppercase !important; }
+      h3 { font-size: 11.5px !important; margin-top: 8px !important; margin-bottom: 4px !important; }
+      p, li, div { font-size: 10.5px !important; line-height: 1.38 !important; }
+      ul { margin-top: 4px !important; margin-bottom: 8px !important; padding-left: 18px !important; }
+      li { margin-bottom: 3px !important; }
+    </style>`;
     if (html.includes("</head>")) {
-      html = html.replace("</head>", `${blueLinkStyle}</head>`);
+      html = html.replace("</head>", `${layoutStyle}</head>`);
     } else {
-      html = blueLinkStyle + html;
+      html = layoutStyle + html;
     }
 
     const pdfBuffer = await generatePdfFromHtml({ html });

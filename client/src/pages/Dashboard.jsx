@@ -309,7 +309,7 @@ export default function Dashboard() {
 
             <div className="space-y-1.5">
               <label className="block text-xs font-medium">Upload Resume PDF</label>
-              <label className={`border border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${
+              <label className={`w-full min-w-0 border border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${
                 isDark
                   ? "border-zinc-800 bg-[#09090b] hover:border-zinc-700"
                   : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
@@ -321,7 +321,10 @@ export default function Dashboard() {
                   onChange={handleFileChange}
                   className="hidden"
                 />
-                <span className="text-xs font-semibold">
+                <span
+                  title={fileName || "Choose Resume PDF"}
+                  className="text-xs font-semibold w-full max-w-full text-center truncate px-2 block"
+                >
                   {fileName ? fileName : "Choose Resume PDF"}
                 </span>
                 <span className={`text-[10px] mt-0.5 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
