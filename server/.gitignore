@@ -5,8 +5,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Dependency directories
+# Dependency & Puppeteer cache directories
 node_modules/
+.cache/
 
 # Env secrets
 .env
