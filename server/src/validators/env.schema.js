@@ -23,6 +23,9 @@ export const envSchema = z.object({
   
   GOOGLE_GENAI_API_KEY: z.string().optional().default(""),
   
+  // Brevo Transactional Email Config
+  BREVO_API_KEY: z.string().optional().default(""),
+  BREVO_SENDER_EMAIL: z.string().optional().default("genaiinterviewstrategist@gmail.com"),
 
   GOOGLE_MAIL_CLIENT_ID: z.string().optional().default(""),
   GOOGLE_MAIL_CLIENT_SECRET: z.string().optional().default(""),
@@ -30,7 +33,6 @@ export const envSchema = z.object({
   GOOGLE_MAIL_USER: z.string().optional().default(""),
   SUPPORT_EMAIL: z.string().optional().default(""),
   CLOUDINARY_URL: z.string().optional().default("https://res.cloudinary.com/rcq9ypim/image/upload/v1786791966/ChatGPT_Image_Aug_15_2026_04_34_12_PM.svg"),
-  
   
   CLIENT_URL: z.string().default("http://localhost:5173")
 });
