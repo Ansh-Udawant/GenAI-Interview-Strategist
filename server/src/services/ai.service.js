@@ -5,48 +5,47 @@ import { z } from "zod";
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/ApiError.js";
 
-const ai = new GoogleGenAI({
-  apiKey: env.GOOGLE_GENAI_API_KEY
+const ai = new GoogleGenAI({ apiKey: env.GOOGLE_GENAI_API_KEY });
+
+const technicalQuestionSchema = z.object({
+  question: z.string().describe("The interview question"),
+  intention: z.string().describe("Why the interviewer is asking this question"),
+  answerFormat: z.string().describe("How the candidate should structure their response"),
+  sampleAnswer: z.string().describe("A high-scoring sample answer"),
+  topic: z.string().describe("The core technical skill or topic area evaluated")
 });
 
-// Zod schema defining the expected structured JSON response from Gemini for interview reports
+const behavioralQuestionSchema = z.object({
+  question: z.string().describe("The behavioral scenario question"),
+  intention: z.string().describe("What competency or soft skill is being evaluated"),
+  starBreakdown: z.object({
+    situation: z.string().describe("Setting the context"),
+    task: z.string().describe("The challenge or goal"),
+    action: z.string().describe("Specific actions taken by the candidate"),
+    result: z.string().describe("Quantifiable outcome and learnings")
+  })
+});
+
 const interviewReportSchema = z.object({
-  matchScore: z.number().describe("A score between 0 to 100 indicating how well the candidate's profile matches the job description"),
-  
-  technicalQuestions: z.array(z.object({
-    question: z.string().describe("The technical questions asked in the interview"),
-    intention: z.string().describe("The intention of the interviewer behind asking this question"),
-    answer: z.string().describe("How to answer this question, what points to cover, what approach to take etc.")
-  })).describe("Technical questions that can be asked in the interview along with their intention and how to answer them"),
+  title: z.string().describe("A descriptive title for this interview preparation report"),
+  companyProfile: z.string().describe("Overview of the target role, expected tech stack, and evaluation focus"),
+  technicalQuestions: z.array(technicalQuestionSchema).describe("Tailored technical questions covering core requirements"),
+  behavioralQuestions: z.array(behavioralQuestionSchema).describe("STAR-format behavioral questions tailored to past experience"),
+  preparationStrategy: z.array(z.string()).describe("Actionable preparation tips for the 24-48 hours before the interview")
+});
 
-  behavioralQuestion: z.array(z.object({
-    question: z.string().describe("The behavioral questions asked in the interview"),
-    intention: z.string().describe("The intention of the interviewer behind asking this question"),
-    answer: z.string().describe("How to answer this question, what points to cover, what approach to take etc.")
-  })).describe("Behavioral questions that can be asked in the interview along with their intention and how to answer them"),
-
-  skillGaps: z.array(z.object({
-    skill: z.string().describe("The skill which the candidate is lacking"),
-    severity: z.enum(["low", "medium", "high"]).describe("The severity of the skill gap, i.e., how important is the skill for the job")
-  })).describe("List of skill gaps in the candidate's profile along with their severity"),
-
-  preparationPlan: z.array(z.object({
-    day: z.number().describe("The day number in the preparation plan, starting from 1"),
-    focus: z.string().describe("The main focus of this day in the preparation plan, e.g., data structures, system design, mock interview"),
-    task: z.array(z.string()).describe("List of tasks to be done on this day to follow the preparation plan")
-  })).describe("A day-wise preparation plan for the candidate to follow in order to prepare for the interview effectively"),
-  title: z.string().describe("The title of the job for which interview report is being generated")
+const resumePdfSchema = z.object({
+  html: z.string().describe("Complete, beautiful HTML page with inline CSS tailored for A4 PDF printing")
 });
 
 /**
- * Generates structured interview report using Gemini AI based on candidate resume and target job description.
+ * Generates structured technical and behavioral interview preparation report using Google Gemini AI.
  *
  * @param {Object} params
- * @param {string} [params.resume] - Extracted text content of candidate's resume PDF.
- * @param {string} [params.selfDescription] - Optional self-description text.
- * @param {string} params.jobDescription - Target job description text.
- * @returns {Promise<Object>} Parsed interview report object matching interviewReportSchema.
- * @throws {ApiError} When AI generation fails.
+ * @param {string} params.resume - Extracted text content from resume or candidate overview.
+ * @param {string} params.selfDescription - Candidate's self-written background and goals.
+ * @param {string} params.jobDescription - Target job posting details.
+ * @returns {Promise<Object>} Validated report matching interviewReportSchema.
  */
 export async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
@@ -85,44 +84,56 @@ export async function generateInterviewReport({ resume, selfDescription, jobDesc
 export async function generatePdfFromHtml({ html }) {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
   });
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
-  const pdfBuffer = await page.pdf({
-    format: "A4",
-    printBackground: true,
-    margin: {
-      top: "0",
-      bottom: "0",
-      left: "0",
-      right: "0"
-    }
-  });
-  await browser.close();
-  return pdfBuffer;
+
+  try {
+    await page.setContent(html, { waitUntil: "networkidle0" });
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "0.4in",
+        right: "0.4in",
+        bottom: "0.4in",
+        left: "0.4in"
+      }
+    });
+
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
 }
 
 /**
- * Generates an ATS-optimized, single-page resume HTML using Gemini AI and renders it to PDF via Puppeteer.
+ * Generates an ATS-optimized, modern A4 Resume PDF based on user background, target role, and past experience.
  *
  * @param {Object} params
- * @param {string} [params.resume] - Existing resume text.
- * @param {string} [params.selfDescription] - Candidate's self-description.
- * @param {string} params.jobDescription - Target job description.
- * @returns {Promise<Buffer>} Generated resume PDF binary buffer.
- * @throws {ApiError} When ATS resume generation fails.
+ * @param {string} params.resume - Raw resume or background notes.
+ * @param {string} params.selfDescription - Candidate summary.
+ * @param {string} params.jobDescription - Target job requirements.
+ * @returns {Promise<Buffer>} Binary A4 PDF Buffer.
  */
 export async function generateResumePDF({ resume, selfDescription, jobDescription }) {
+  console.log("Generating tailored resume PDF via Gemini AI...");
 
-  const resumePdfSchema = z.object({
-    html: z.string().describe("html content of the resume which can be converted to pdf using puppeteer")
-  });
+  const prompt = `You are an expert ATS resume writer and professional designer. Generate a complete, elegant, and highly professional HTML resume with inline CSS for a candidate targeting the following job position.
 
-  const prompt = `Generate a highly professional, clean, and ATS-friendly (Applicant Tracking System compatible) resume in HTML format.
-  Use embedded CSS within a <style> tag to style the resume.
-  
-  Design, Border & Spacing Guidelines:
+Candidate Resume / Notes:
+${resume}
+
+Candidate Background & Self Description:
+${selfDescription}
+
+Target Job Description:
+${jobDescription}
+
+HTML & CSS Requirements:
+- Return ONLY a JSON object matching the schema with the 'html' field containing valid HTML5 markup (\`<!DOCTYPE html><html>...\`).
+- Design, Border & Spacing Guidelines:
   - MUST fit perfectly onto a SINGLE A4 page. Adjust font-sizes, line-heights, and vertical margins to ensure all content fits without creating a second page or large white gaps.
   - DO NOT use outer card containers, border outlines, box shadows, grey page margins, or nested background cards. The entire document body must be flat, pure white (#ffffff) with black/dark-gray text.
   - Set the CSS print margins: use \`@page { size: A4; margin: 0; }\` and \`body { margin: 0; padding: 0.5in; font-family: Arial, Helvetica, sans-serif; box-sizing: border-box; background: #ffffff; }\`.
@@ -142,14 +153,7 @@ export async function generateResumePDF({ resume, selfDescription, jobDescriptio
     * Body text & bullet points: 10px - 11px (line-height: 1.3, list margins: 3px)
   - Apply \`page-break-inside: avoid; break-inside: avoid;\` to each individual section block (e.g. .experience-item, .project-item) to prevent weird section splitting.
   - Use bullet points for experience and project tasks.
-  
-  Candidate Details:
-  Resume Context: ${resume}
-  Self Description: ${selfDescription}
-  Target Job Description: ${jobDescription}
-
-  The response MUST be a JSON object with a single key 'html' containing the complete raw HTML code.
-  `;
+`;
 
   try {
     const res = await ai.models.generateContent({

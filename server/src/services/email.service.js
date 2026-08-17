@@ -1,13 +1,21 @@
 import { render } from "@react-email/render";
 import nodemailer from "nodemailer";
+import dns from "dns";
 
 import { env } from "../config/env.js";
 import { LoginOTPTemplate } from "../templates/loginOTPTemplate.js";
 import { ResetPasswordTemplate } from "../templates/resetPasswordTemplate.js";
 import { VerifyEmailTemplate } from "../templates/verifyEmailTemplate.js";
 
+// Force IPv4 DNS resolution for cloud servers (Render / AWS / Railway)
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch (e) {
+  // Ignore in older environments
+}
+
 /**
- * Creates and returns a Nodemailer transporter configured for Gmail OAuth2,
+ * Creates and returns a Nodemailer transporter configured for Gmail OAuth2 or SMTP,
  * or returns null if credentials are not present (enabling dev mock mode).
  *
  * @returns {import("nodemailer").Transporter | null}
@@ -23,12 +31,31 @@ function createTransporter() {
   if (isGoogleOAuth2Configured) {
     return nodemailer.createTransport({
       service: "gmail",
+      family: 4,
       auth: {
         type: "OAuth2",
         user: env.GOOGLE_MAIL_USER,
         clientId: env.GOOGLE_MAIL_CLIENT_ID,
         clientSecret: env.GOOGLE_MAIL_CLIENT_SECRET,
         refreshToken: env.GOOGLE_MAIL_REFRESH_TOKEN,
+      },
+    });
+  }
+
+  const isSMTPConfigured = Boolean(
+    (process.env.SMTP_USER || process.env.GMAIL_USER) &&
+    (process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD)
+  );
+
+  if (isSMTPConfigured) {
+    return nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // STARTTLS
+      family: 4,
+      auth: {
+        user: process.env.SMTP_USER || process.env.GMAIL_USER,
+        pass: process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD,
       },
     });
   }
@@ -53,6 +80,7 @@ async function sendMail(to, subject, templateElement) {
     const from =
       env.SUPPORT_EMAIL ||
       env.GOOGLE_MAIL_USER ||
+      process.env.GMAIL_USER ||
       "noreply@genai-strategist.com";
 
     // Log in development mode if email credentials are not set
@@ -126,5 +154,3 @@ export async function sendResetPasswordEmail(email, username, otp) {
     ResetPasswordTemplate({ username, otp })
   );
 }
-
-
