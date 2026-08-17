@@ -10,28 +10,33 @@ const ai = new GoogleGenAI({ apiKey: env.GOOGLE_GENAI_API_KEY });
 const technicalQuestionSchema = z.object({
   question: z.string().describe("The interview question"),
   intention: z.string().describe("Why the interviewer is asking this question"),
-  answerFormat: z.string().describe("How the candidate should structure their response"),
-  sampleAnswer: z.string().describe("A high-scoring sample answer"),
-  topic: z.string().describe("The core technical skill or topic area evaluated")
+  answer: z.string().describe("A comprehensive, high-scoring technical answer and explanation for the candidate")
 });
 
 const behavioralQuestionSchema = z.object({
   question: z.string().describe("The behavioral scenario question"),
   intention: z.string().describe("What competency or soft skill is being evaluated"),
-  starBreakdown: z.object({
-    situation: z.string().describe("Setting the context"),
-    task: z.string().describe("The challenge or goal"),
-    action: z.string().describe("Specific actions taken by the candidate"),
-    result: z.string().describe("Quantifiable outcome and learnings")
-  })
+  answer: z.string().describe("A detailed STAR-method formatted sample answer outlining Situation, Task, Action, and Result")
+});
+
+const skillGapSchema = z.object({
+  skill: z.string().describe("The missing or weak technical skill to bridge"),
+  severity: z.enum(["low", "medium", "high"]).describe("The impact severity level of this skill gap")
+});
+
+const preparationPlanSchema = z.object({
+  day: z.number().describe("Day number from 1 to 5"),
+  focus: z.string().describe("Core focus topic area for this preparation day"),
+  task: z.array(z.string()).describe("Actionable preparation tasks for this day")
 });
 
 const interviewReportSchema = z.object({
-  title: z.string().describe("A descriptive title for this interview preparation report"),
-  companyProfile: z.string().describe("Overview of the target role, expected tech stack, and evaluation focus"),
-  technicalQuestions: z.array(technicalQuestionSchema).describe("Tailored technical questions covering core requirements"),
-  behavioralQuestions: z.array(behavioralQuestionSchema).describe("STAR-format behavioral questions tailored to past experience"),
-  preparationStrategy: z.array(z.string()).describe("Actionable preparation tips for the 24-48 hours before the interview")
+  title: z.string().describe("A descriptive title for this interview preparation report based on target job role"),
+  matchScore: z.number().min(0).max(100).describe("Candidate fit match score percentage from 0 to 100"),
+  technicalQuestions: z.array(technicalQuestionSchema).describe("Tailored technical questions covering core requirements with full sample answers"),
+  behavioralQuestion: z.array(behavioralQuestionSchema).describe("STAR-format behavioral questions with full sample answers"),
+  skillGaps: z.array(skillGapSchema).describe("Identified skill gaps between candidate profile and target job"),
+  preparationPlan: z.array(preparationPlanSchema).describe("Structured 5-day preparation roadmap")
 });
 
 const resumePdfSchema = z.object({
@@ -50,11 +55,26 @@ const resumePdfSchema = z.object({
 export async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
   console.log("Generating interview report via Gemini AI...");
-  const prompt = `generate an interview report for candidate with the following details:
-  Resume: ${resume}
-  Self Description: ${selfDescription}
-  Job Description: ${jobDescription}
-  `;
+  const prompt = `You are an expert interview preparation coach and technical recruiter. Generate a complete, highly structured interview preparation strategy report for a candidate with the following details:
+
+Resume: ${resume || "Not provided"}
+Self Description: ${selfDescription || "Not provided"}
+Job Description: ${jobDescription}
+
+Instructions:
+- Title: Generate a crisp, professional title for the role (e.g. "Senior Full Stack Developer Strategy Plan").
+- MatchScore: Calculate a realistic match score integer between 0 and 100 based on candidate background vs job requirements.
+- TechnicalQuestions: Provide 5 high-impact technical interview questions. For each question, provide:
+  * 'question': The exact question string.
+  * 'intention': Why the interviewer asks this question.
+  * 'answer': A comprehensive, detailed, high-scoring sample technical answer that the candidate should give.
+- BehavioralQuestion: Provide 3 behavioral interview questions. For each question, provide:
+  * 'question': The behavioral scenario question.
+  * 'intention': The core soft skill being evaluated.
+  * 'answer': A complete STAR-formatted sample response (Situation, Task, Action, Result).
+- SkillGaps: Identify 3 to 5 skill gaps or areas to improve with 'skill' name and 'severity' ('low', 'medium', or 'high').
+- PreparationPlan: Provide a structured 5-day roadmap (day 1 to 5) with 'day' number, 'focus' title, and 'task' list of actionable study steps.
+`;
 
   try {
     const res = await ai.models.generateContent({
