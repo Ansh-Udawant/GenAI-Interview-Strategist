@@ -72,9 +72,6 @@ api.interceptors.response.use(
       } catch (refreshError) {
         isRefreshing = false;
         processQueue(refreshError, null);
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/register")) {
-          window.location.href = "/login";
-        }
         return Promise.reject(refreshError);
       }
     }

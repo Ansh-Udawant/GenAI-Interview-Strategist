@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router";
 
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { PublicRoute } from "./components/auth/PublicRoute";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
@@ -22,19 +23,35 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <Login />
+    element: (
+      <PublicRoute>
+        <Login />
+      </PublicRoute>
+    )
   },
   {
     path: "/login-otp",
-    element: <LoginOTP />
+    element: (
+      <PublicRoute>
+        <LoginOTP />
+      </PublicRoute>
+    )
   },
   {
     path: "/register",
-    element: <Register />
+    element: (
+      <PublicRoute>
+        <Register />
+      </PublicRoute>
+    )
   },
   {
     path: "/verify-email-otp",
-    element: <VerifyEmailOTP />
+    element: (
+      <PublicRoute>
+        <VerifyEmailOTP />
+      </PublicRoute>
+    )
   },
   {
     path: "/forgot-password",

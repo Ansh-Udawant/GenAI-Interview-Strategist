@@ -2,14 +2,15 @@ import { useSelector } from "react-redux";
 import { Navigate } from "react-router";
 
 /**
- * Route protection wrapper component that ensures user is authenticated before rendering children.
+ * Route wrapper for public authentication pages (e.g. /login, /register)
+ * that redirects already-authenticated users to /dashboard.
  *
  * @param {Object} props
  * @param {React.ReactNode} props.children
  * @returns {React.ReactNode}
  */
-export function ProtectedRoute({ children }) {
-  const { isAuthenticated, isCheckingAuth, user } = useSelector((state) => state.auth);
+export function PublicRoute({ children }) {
+  const { isAuthenticated, isCheckingAuth } = useSelector((state) => state.auth);
 
   if (isCheckingAuth) {
     return (
@@ -20,8 +21,8 @@ export function ProtectedRoute({ children }) {
     );
   }
 
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
