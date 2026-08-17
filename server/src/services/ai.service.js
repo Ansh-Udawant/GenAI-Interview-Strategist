@@ -104,13 +104,24 @@ Instructions:
 export async function generatePdfFromHtml({ html }) {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process"
+    ],
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
   });
   const page = await browser.newPage();
 
   try {
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, {
+      waitUntil: "domcontentloaded",
+      timeout: 15000
+    });
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
