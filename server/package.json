@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "npx puppeteer browsers install chrome",
+    "build": "npm install && npx puppeteer browsers install chrome",
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
