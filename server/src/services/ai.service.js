@@ -81,7 +81,7 @@ function isTransientError(error) {
 }
 
 /**
- * Calls Google Gemini AI generateContent with automatic fallback to gemini-2.5-flash-lite
+ * Calls Google Gemini AI generateContent with automatic fallback to gemini-3.5-flash-lite
  * if primary model (gemini-2.5-flash) experiences a transient error (e.g. 503, 429, 500, 502, 504).
  *
  * @param {Object} params
@@ -91,7 +91,7 @@ function isTransientError(error) {
  */
 async function generateGeminiContent({ contents, config }) {
   const primaryModel = "gemini-2.5-flash";
-  const fallbackModel = "gemini-2.5-flash-lite";
+  const fallbackModel = "gemini-3.5-flash-lite";
 
   const payload = {
     contents,
