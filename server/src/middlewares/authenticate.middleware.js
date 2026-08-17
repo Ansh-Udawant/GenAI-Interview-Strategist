@@ -29,8 +29,8 @@ export async function authenticate(req, res, next) {
       throw new ApiError(401, "User not found or account disabled");
     }
 
-    // Check if active refresh sessions exist for this user (in case Logout All was performed on another device)
-    const activeSessionExists = await refreshSessionModel.exists({ userId: user._id });
+    // Check if active (non-revoked) refresh sessions exist for this user (in case Logout All was performed on another device)
+    const activeSessionExists = await refreshSessionModel.exists({ userId: user._id, revokedAt: null });
     if (!activeSessionExists) {
       throw new ApiError(401, "Session has been revoked or logged out from all devices");
     }
