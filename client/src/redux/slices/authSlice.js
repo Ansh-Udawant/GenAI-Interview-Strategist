@@ -86,13 +86,12 @@ export const logoutAllDevices = createAsyncThunk("auth/logoutAllDevices", async 
   }
 });
 
-
 const authSlice = createSlice({
   name: "auth",
   initialState: {
     user: null,
     isAuthenticated: false,
-    isCheckingAuth: false,
+    isCheckingAuth: true,
     loading: false,
     error: null,
     pendingEmail: "",
