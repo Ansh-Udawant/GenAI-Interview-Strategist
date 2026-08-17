@@ -44,6 +44,78 @@ const resumePdfSchema = z.object({
 });
 
 /**
+ * Determines if a caught error is a transient Gemini API availability error.
+ *
+ * @param {any} error - The error caught during AI generation.
+ * @returns {boolean} True for transient errors (503, 429, 500, 502, 504), false otherwise.
+ */
+function isTransientError(error) {
+  if (!error) return false;
+
+  const rawStatus = error.status ?? error.code ?? error.statusCode ?? error.response?.status;
+  const statusCode = typeof rawStatus === "number" ? rawStatus : parseInt(rawStatus, 10);
+  const transientStatusCodes = [503, 429, 500, 502, 504];
+
+  if (!isNaN(statusCode) && transientStatusCodes.includes(statusCode)) {
+    return true;
+  }
+
+  const message = String(error.message || error);
+
+  // Exclude explicit non-transient HTTP status codes (400, 401, 403, 404)
+  if (/"code":\s*(400|401|403|404)\b/.test(message) || /\bHTTP (400|401|403|404)\b/.test(message)) {
+    return false;
+  }
+
+  const transientPatterns = [
+    /\b(503|429|500|502|504)\b/,
+    /UNAVAILABLE/i,
+    /RESOURCE_EXHAUSTED/i,
+    /high demand/i,
+    /overloaded/i,
+    /rate limit/i,
+    /temporarily unavailable/i
+  ];
+
+  return transientPatterns.some((pattern) => pattern.test(message));
+}
+
+/**
+ * Calls Google Gemini AI generateContent with automatic fallback to gemini-2.5-flash-lite
+ * if primary model (gemini-2.5-flash) experiences a transient error (e.g. 503, 429, 500, 502, 504).
+ *
+ * @param {Object} params
+ * @param {any} params.contents - Prompt or content payload for Gemini.
+ * @param {Object} [params.config] - Generation configuration (responseMimeType, responseSchema, etc.).
+ * @returns {Promise<Object>} Raw response object returned by Gemini generateContent API.
+ */
+async function generateGeminiContent({ contents, config }) {
+  const primaryModel = "gemini-2.5-flash";
+  const fallbackModel = "gemini-2.5-flash-lite";
+
+  const payload = {
+    contents,
+    ...(config && { config })
+  };
+
+  try {
+    return await ai.models.generateContent({
+      model: primaryModel,
+      ...payload
+    });
+  } catch (error) {
+    if (isTransientError(error)) {
+      console.warn("Primary Gemini model failed. Trying fallback model...");
+      return await ai.models.generateContent({
+        model: fallbackModel,
+        ...payload
+      });
+    }
+    throw error;
+  }
+}
+
+/**
  * Generates structured technical and behavioral interview preparation report using Google Gemini AI.
  *
  * @param {Object} params
@@ -77,8 +149,7 @@ Instructions:
 `;
 
   try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const res = await generateGeminiContent({
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -90,7 +161,11 @@ Instructions:
     return parsedReport;
   } catch (error) {
     console.error("AI Report Generation Error:", error);
-    throw new ApiError(500, "Failed to generate interview report from AI: " + error.message);
+    const cleanMessage =
+      error.message && !error.message.trim().startsWith("{") && !error.message.includes('"error":')
+        ? error.message
+        : "Service temporarily unavailable. Please try again later.";
+    throw new ApiError(500, "Failed to generate interview report from AI: " + cleanMessage);
   }
 }
 
@@ -187,8 +262,7 @@ HTML & CSS Requirements:
 `;
 
   try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const res = await generateGeminiContent({
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -219,6 +293,11 @@ HTML & CSS Requirements:
     return pdfBuffer;
   } catch (error) {
     console.error("AI Resume PDF Generation Error:", error);
-    throw new ApiError(500, "Failed to generate resume PDF: " + error.message);
+    const cleanMessage =
+      error.message && !error.message.trim().startsWith("{") && !error.message.includes('"error":')
+        ? error.message
+        : "Service temporarily unavailable. Please try again later.";
+    throw new ApiError(500, "Failed to generate resume PDF: " + cleanMessage);
   }
 }
+
