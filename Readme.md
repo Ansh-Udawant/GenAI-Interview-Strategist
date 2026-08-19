@@ -9,7 +9,7 @@
 ## 🚀 Live Demo & Repository
 
 - **GitHub Repository**: [https://github.com/Ansh-Udawant/GenAI-Interview-Strategist](https://github.com/Ansh-Udawant/GenAI-Interview-Strategist)
-- **Live Application Demo**: `https://genai-interview-strategist.vercel.app` *(Replace with your live production URL if deployed)*
+- **Live Application Demo**: [https://genai-interview-strategist.vercel.app](https://genai-interview-strategist.vercel.app)
 
 ---
 
